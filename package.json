@@ -1,0 +1,22 @@
+{
+  "name": "payevo-pix-backend",
+  "version": "1.0.0",
+  "description": "Backend para integração com API Payevo PIX",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["payevo", "pix", "payment"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
