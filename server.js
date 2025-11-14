@@ -35,6 +35,84 @@ app.get('/health', (req, res) => {
 });
 
 /**
+ * Verificar status de uma transação PIX
+ * GET /transactions/:transactionId
+ */
+app.get('/transactions/:transactionId', async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+
+    if (!PAYEVO_SECRET_KEY) {
+      return res.status(500).json({
+        error: 'Configuração do servidor incompleta',
+        message: 'A chave secreta da Payevo não foi configurada no Railway.'
+      });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({
+        error: 'ID da transação é obrigatório'
+      });
+    }
+
+    // Preparar autenticação
+    const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
+    
+    // Consultar transação na Payevo
+    const payevoUrl = `https://apiv2.payevo.com.br/functions/v1/transactions/${transactionId}`;
+    
+    console.log('🔍 Verificando status da transação:', transactionId);
+    
+    const response = await fetch(payevoUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'authorization': `Basic ${authToken}`
+      }
+    });
+
+    const responseText = await response.text();
+    
+    if (!response.ok) {
+      console.error('❌ Erro ao verificar transação:', response.status, responseText);
+      return res.status(response.status).json({
+        error: 'Erro ao verificar transação',
+        message: responseText
+      });
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('❌ Erro ao parsear resposta:', e.message);
+      return res.status(500).json({
+        error: 'Erro ao processar resposta da Payevo',
+        message: responseText
+      });
+    }
+
+    console.log('✅ Status da transação:', responseData.status);
+
+    // Retornar status formatado
+    res.json({
+      transactionId: responseData.id || transactionId,
+      status: responseData.status || 'unknown',
+      amount: responseData.amount ? responseData.amount / 100 : null, // Converter centavos para reais
+      paidAt: responseData.paidAt || null,
+      createdAt: responseData.createdAt || null,
+    });
+
+  } catch (error) {
+    console.error('Erro ao verificar transação:', error);
+    res.status(500).json({
+      error: 'Erro interno do servidor',
+      message: error.message || 'Erro desconhecido'
+    });
+  }
+});
+
+/**
  * Criar transação PIX
  * POST /transactions
  */
