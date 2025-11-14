@@ -16,12 +16,11 @@ app.use(express.json());
 
 // Configurações da Payevo (do arquivo .env no Railway)
 const PAYEVO_SECRET_KEY = process.env.PAYEVO_SECRET_KEY;
-const PAYEVO_COMPANY_ID = process.env.PAYEVO_COMPANY_ID;
 const PAYEVO_API_URL = 'https://apiv2.payevo.com.br/functions/v1/transactions';
 
 // Validar configurações
-if (!PAYEVO_SECRET_KEY || !PAYEVO_COMPANY_ID) {
-  console.error('⚠️  ERRO: PAYEVO_SECRET_KEY e PAYEVO_COMPANY_ID devem estar configurados nas variáveis de ambiente do Railway!');
+if (!PAYEVO_SECRET_KEY) {
+  console.error('⚠️  ERRO: PAYEVO_SECRET_KEY deve estar configurada nas variáveis de ambiente do Railway!');
 }
 
 /**
@@ -42,10 +41,10 @@ app.get('/health', (req, res) => {
 app.post('/transactions', async (req, res) => {
   try {
     // Validar credenciais
-    if (!PAYEVO_SECRET_KEY || !PAYEVO_COMPANY_ID) {
+    if (!PAYEVO_SECRET_KEY) {
       return res.status(500).json({
         error: 'Configuração do servidor incompleta',
-        message: 'As credenciais da Payevo não foram configuradas no Railway'
+        message: 'A chave secreta da Payevo não foi configurada no Railway. Configure PAYEVO_SECRET_KEY nas variáveis de ambiente.'
       });
     }
 
