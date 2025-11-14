@@ -52,6 +52,8 @@ app.post('/transactions', async (req, res) => {
     // Validar dados recebidos
     const { customer, amount, expiresInDays, productName, externalRef } = req.body;
 
+    console.log('📥 Dados recebidos:', JSON.stringify(req.body, null, 2));
+
     if (!customer || !amount || !customer.name || !customer.email || !customer.phone || !customer.document) {
       return res.status(400).json({
         error: 'Dados inválidos',
@@ -66,16 +68,6 @@ app.post('/transactions', async (req, res) => {
       return res.status(400).json({
         error: 'Valor inválido',
         message: 'O valor deve ser um número maior que zero'
-      });
-    }
-
-    // Verificar valor mínimo (Payevo geralmente tem um valor mínimo, por exemplo 1 real)
-    // Ajuste este valor conforme necessário
-    const MINIMUM_AMOUNT = 1.0;
-    if (amountNumber < MINIMUM_AMOUNT) {
-      return res.status(400).json({
-        error: 'Valor muito baixo',
-        message: `O valor mínimo é R$ ${MINIMUM_AMOUNT.toFixed(2)}`
       });
     }
 
@@ -96,17 +88,25 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: amountNumber, // Número, não string
+      // Payevo pode esperar amount em centavos (inteiro) ou reais (decimal)
+      // Testando com valor em reais primeiro (conforme documentação)
+      amount: amountNumber, // Número em reais (ex: 30.00)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: amountNumber, // Número, não string
+          unitPrice: amountNumber, // Número em reais
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
       ],
       companyId: PAYEVO_COMPANY_ID
     };
+
+    // Log do que será enviado para Payevo (sem credenciais)
+    console.log('📤 Enviando para Payevo:', JSON.stringify({
+      ...requestBody,
+      companyId: '[HIDDEN]'
+    }, null, 2));
 
     // Fazer requisição para API Payevo
     const response = await fetch(PAYEVO_API_URL, {
