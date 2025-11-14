@@ -89,9 +89,8 @@ app.post('/transactions', async (req, res) => {
         }
       },
       paymentMethod: 'PIX',
-      pix: {
-        expiresInDays: expiresInDays || 1
-      },
+      pix: {}, // Objeto pix vazio - conforme exemplo que funciona
+      expiresInDays: expiresInDays || 1, // No nível raiz, não dentro de pix
       amount: amountInt, // Número inteiro conforme exemplo (ex: 50 para R$ 50,00)
       items: [
         {
