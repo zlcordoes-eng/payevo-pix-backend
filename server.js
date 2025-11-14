@@ -72,19 +72,15 @@ app.post('/transactions', async (req, res) => {
       });
     }
 
-    // Garantir 2 casas decimais (ex: 30 vira 30.00, 30.5 vira 30.50)
-    // Isso é importante para a Payevo calcular as taxas corretamente
-    amountNumber = parseFloat(amountNumber.toFixed(2));
+    // IMPORTANTE: Na integração que funciona, o amount é enviado como inteiro
+    // Não precisamos converter para decimal e depois para inteiro
+    // Converter diretamente para inteiro como na integração que funciona
+    const amountInt = Math.round(amountNumber);
 
     // Preparar requisição para API Payevo
     // IMPORTANTE: Basic Auth = Base64(SECRET_KEY:x)
     const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
     console.log('🔑 Auth Token (primeiros 20 chars):', authToken.substring(0, 20) + '...');
-
-    // Conforme exemplo da Payevo e integração que funciona:
-    // - O amount pode ser inteiro (100) mas é melhor garantir decimais (100.00)
-    // - Vamos enviar com 2 casas decimais para garantir cálculo correto de taxas
-    const amountToSend = amountNumber; // Já com 2 casas decimais (30.00)
 
     // Preparar requestBody EXATAMENTE como na integração que funciona
     // ORDEM É IMPORTANTE: customer, paymentMethod, pix, amount, items (sem vírgula extra!)
@@ -102,11 +98,11 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: Math.round(amountToSend), // Enviar como inteiro
+      amount: amountInt, // Enviar como inteiro (ex: 30)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: Math.round(amountToSend), // Enviar como inteiro igual ao amount
+          unitPrice: amountInt, // Enviar como inteiro igual ao amount
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
@@ -127,9 +123,10 @@ app.post('/transactions', async (req, res) => {
 
     // Log do que será enviado para Payevo (com valor detalhado)
     console.log('📤 Enviando para Payevo:');
-    console.log('  - amount:', amountToSend, '(tipo:', typeof amountToSend, ')');
-    console.log('  - unitPrice:', amountToSend, '(tipo:', typeof amountToSend, ')');
-    console.log('  - JSON completo:', JSON.stringify(requestBody, null, 2));
+    console.log('  - URL:', PAYEVO_API_URL);
+    console.log('  - amount:', amountInt, '(tipo:', typeof amountInt, ')');
+    console.log('  - unitPrice:', amountInt, '(tipo:', typeof amountInt, ')');
+    console.log('  - JSON completo:', jsonString);
 
     // Fazer requisição para API Payevo
     // IMPORTANTE: Enviar JSON sem espaços extras, exatamente como na integração que funciona
