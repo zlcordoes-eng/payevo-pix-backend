@@ -85,7 +85,7 @@ app.post('/transactions', async (req, res) => {
     const amountToSend = amountNumber; // Já com 2 casas decimais (30.00)
 
     // Preparar requestBody EXATAMENTE como na integração que funciona
-    // Estrutura: customer, paymentMethod, pix, amount, items (ordem específica)
+    // ORDEM É IMPORTANTE: customer, paymentMethod, pix, amount, items (sem vírgula extra!)
     const requestBody = {
       customer: {
         name: customer.name,
@@ -100,7 +100,7 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: Math.round(amountToSend), // Enviar como inteiro (ex: 150 ao invés de 150.00)
+      amount: Math.round(amountToSend), // Enviar como inteiro
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
@@ -110,6 +110,18 @@ app.post('/transactions', async (req, res) => {
         }
       ]
     };
+    
+    // Verificar se o JSON está válido antes de enviar
+    const jsonString = JSON.stringify(requestBody);
+    try {
+      JSON.parse(jsonString); // Validar JSON
+    } catch (e) {
+      console.error('❌ ERRO: JSON inválido!', e.message);
+      return res.status(500).json({
+        error: 'Erro ao criar JSON',
+        message: 'Erro ao formatar dados para envio: ' + e.message
+      });
+    }
 
     // Log do que será enviado para Payevo (com valor detalhado)
     console.log('📤 Enviando para Payevo:');
@@ -118,6 +130,7 @@ app.post('/transactions', async (req, res) => {
     console.log('  - JSON completo:', JSON.stringify(requestBody, null, 2));
 
     // Fazer requisição para API Payevo
+    // IMPORTANTE: Enviar JSON sem espaços extras, exatamente como na integração que funciona
     const response = await fetch(PAYEVO_API_URL, {
       method: 'POST',
       headers: {
@@ -125,7 +138,7 @@ app.post('/transactions', async (req, res) => {
         'accept': 'application/json',
         'authorization': `Basic ${authToken}`
       },
-      body: JSON.stringify(requestBody)
+      body: jsonString // Usar o JSON já validado
     });
 
     const responseText = await response.text();
