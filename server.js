@@ -61,7 +61,9 @@ app.post('/transactions', async (req, res) => {
     }
 
     // Converter amount para número e validar
-    const amountNumber = parseFloat(amount);
+    // IMPORTANTE: Garantir 2 casas decimais como na integração que funciona
+    // Se receber 30, converter para 30.00 (mantém decimais explícitos)
+    let amountNumber = parseFloat(amount);
     
     if (isNaN(amountNumber) || amountNumber <= 0) {
       return res.status(400).json({
@@ -70,13 +72,17 @@ app.post('/transactions', async (req, res) => {
       });
     }
 
+    // Garantir 2 casas decimais (ex: 30 vira 30.00, 30.5 vira 30.50)
+    // Isso é importante para a Payevo calcular as taxas corretamente
+    amountNumber = parseFloat(amountNumber.toFixed(2));
+
     // Preparar requisição para API Payevo
     const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
 
-    // Conforme exemplo da Payevo, amount deve ser número inteiro
-    // Mas precisamos garantir que está correto - não truncar se o usuário digitou 50.00
-    // O exemplo mostra: amount: 100 (que provavelmente é R$ 100,00)
-    const amountInt = Math.round(amountNumber); // Usar round ao invés de floor para evitar truncamento incorreto
+    // Conforme exemplo da Payevo e integração que funciona:
+    // - O amount pode ser inteiro (100) mas é melhor garantir decimais (100.00)
+    // - Vamos enviar com 2 casas decimais para garantir cálculo correto de taxas
+    const amountToSend = amountNumber; // Já com 2 casas decimais (30.00)
 
     // Preparar requestBody conforme documentação oficial da Payevo
     // Exemplo original: pix: { "expiresInDays": 1 }
@@ -94,11 +100,11 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1  // Conforme documentação oficial
       },
-      amount: amountInt, // Número inteiro conforme exemplo (ex: 50 para R$ 50,00)
+      amount: amountToSend, // Número com 2 casas decimais (ex: 30.00 para R$ 30,00)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: amountInt, // Número inteiro igual ao amount
+          unitPrice: amountToSend, // Número com 2 casas decimais igual ao amount
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
