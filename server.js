@@ -74,9 +74,10 @@ app.post('/transactions', async (req, res) => {
     // Preparar requisição para API Payevo
     const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
 
-    // Converter para inteiro (sem decimais) conforme exemplo da Payevo
-    // Exemplo: 30.00 vira 30, 100.50 vira 100
-    const amountInt = Math.floor(amountNumber);
+    // Conforme exemplo da Payevo, amount deve ser número inteiro
+    // Mas precisamos garantir que está correto - não truncar se o usuário digitou 50.00
+    // O exemplo mostra: amount: 100 (que provavelmente é R$ 100,00)
+    const amountInt = Math.round(amountNumber); // Usar round ao invés de floor para evitar truncamento incorreto
 
     const requestBody = {
       customer: {
@@ -92,16 +93,16 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: amountInt, // Número inteiro (ex: 30 ao invés de 30.00)
+      amount: amountInt, // Número inteiro conforme exemplo (ex: 50 para R$ 50,00)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: amountInt, // Número inteiro
+          unitPrice: amountInt, // Número inteiro igual ao amount
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
       ]
-      // companyId removido do body - pode ser que não seja necessário ou vá no header
+      // companyId removido - não aparece no exemplo que funciona
     };
 
     // Log do que será enviado para Payevo (sem credenciais)
