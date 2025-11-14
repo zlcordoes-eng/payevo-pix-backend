@@ -164,6 +164,12 @@ app.post('/transactions', async (req, res) => {
       
       responseData = JSON.parse(cleanedResponse);
       console.log('📥 Resposta Payevo (JSON):', JSON.stringify(responseData, null, 2));
+      
+      // Log detalhado do QR Code para debug
+      console.log('🔍 Extraindo QR Code:');
+      console.log('  - responseData.pix:', JSON.stringify(responseData.pix, null, 2));
+      console.log('  - responseData.qrCode:', responseData.qrCode ? 'presente' : 'ausente');
+      console.log('  - responseData.qrCodeBase64:', responseData.qrCodeBase64 ? 'presente' : 'ausente');
     } catch (e) {
       // Se não for JSON, é uma mensagem de erro em texto da Payevo
       console.error('❌ Erro ao parsear resposta da Payevo como JSON');
@@ -208,10 +214,51 @@ app.post('/transactions', async (req, res) => {
       responseAmount = responseData.amount / 100;
     }
     
+    // Extrair QR Code - verificar todos os campos possíveis
+    // A Payevo pode retornar o QR Code em diferentes formatos:
+    // 1. pix.qrcode (string base64 ou URL)
+    // 2. responseData.qrCode ou qrCodeBase64
+    // 3. Uma URL para gerar a imagem
+    let qrCodeValue = '';
+    let qrCodeUrlValue = '';
+    
+    // Priorizar: qrCodeBase64 > qrCode > pix.qrcode > pix.qrCode
+    if (responseData.qrCodeBase64) {
+      qrCodeValue = responseData.qrCodeBase64;
+      console.log('✅ QR Code encontrado em qrCodeBase64');
+    } else if (responseData.qrCode) {
+      qrCodeValue = responseData.qrCode;
+      console.log('✅ QR Code encontrado em qrCode');
+    } else if (pixData.qrcode) {
+      qrCodeValue = pixData.qrcode;
+      console.log('✅ QR Code encontrado em pix.qrcode');
+    } else if (pixData.qrCode) {
+      qrCodeValue = pixData.qrCode;
+      console.log('✅ QR Code encontrado em pix.qrCode');
+    }
+    
+    // Extrair URL do QR Code se disponível
+    if (responseData.qrCodeUrl) {
+      qrCodeUrlValue = responseData.qrCodeUrl;
+    } else if (pixData.qrCodeUrl) {
+      qrCodeUrlValue = pixData.qrCodeUrl;
+    } else if (pixData.receiptUrl) {
+      qrCodeUrlValue = pixData.receiptUrl;
+    }
+    
+    // Se o QR Code for uma string longa (PIX payload), não é uma imagem
+    // A imagem do QR Code geralmente é base64 ou uma URL
+    // Se não tiver, podemos gerar a imagem do QR Code a partir do payload usando uma biblioteca no frontend
+    
+    console.log('📤 Retornando para frontend:');
+    console.log('  - payload:', responseData.payload || pixData.qrcode ? 'presente' : 'ausente');
+    console.log('  - qrCode:', qrCodeValue ? 'presente (' + qrCodeValue.substring(0, 50) + '...)' : 'ausente');
+    console.log('  - qrCodeUrl:', qrCodeUrlValue || 'ausente');
+    
     res.json({
       payload: responseData.payload || responseData.pixCopyPaste || pixData.copyPaste || pixData.qrcode || '',
-      qrCode: responseData.qrCode || responseData.qrCodeBase64 || pixData.qrCode || pixData.qrcode || '',
-      qrCodeUrl: responseData.qrCodeUrl || pixData.qrCodeUrl || pixData.receiptUrl || '',
+      qrCode: qrCodeValue,
+      qrCodeUrl: qrCodeUrlValue,
       transactionId: responseData.id || responseData.transactionId || responseData.transaction?.id || '',
       amount: responseAmount, // Valor em reais para o frontend
       status: responseData.status || 'pending',
