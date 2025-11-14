@@ -104,11 +104,8 @@ app.post('/transactions', async (req, res) => {
       // companyId removido - não aparece no exemplo que funciona
     };
 
-    // Log do que será enviado para Payevo (sem credenciais)
-    console.log('📤 Enviando para Payevo:', JSON.stringify({
-      ...requestBody,
-      companyId: '[HIDDEN]'
-    }, null, 2));
+    // Log do que será enviado para Payevo
+    console.log('📤 Enviando para Payevo:', JSON.stringify(requestBody, null, 2));
 
     // Fazer requisição para API Payevo
     const response = await fetch(PAYEVO_API_URL, {
