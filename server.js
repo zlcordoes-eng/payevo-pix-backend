@@ -78,6 +78,8 @@ app.post('/transactions', async (req, res) => {
     // O exemplo mostra: amount: 100 (que provavelmente é R$ 100,00)
     const amountInt = Math.round(amountNumber); // Usar round ao invés de floor para evitar truncamento incorreto
 
+    // Preparar requestBody conforme documentação oficial da Payevo
+    // Exemplo original: pix: { "expiresInDays": 1 }
     const requestBody = {
       customer: {
         name: customer.name,
@@ -89,8 +91,9 @@ app.post('/transactions', async (req, res) => {
         }
       },
       paymentMethod: 'PIX',
-      pix: {}, // Objeto pix vazio - conforme exemplo que funciona
-      expiresInDays: expiresInDays || 1, // No nível raiz, não dentro de pix
+      pix: {
+        expiresInDays: expiresInDays || 1  // Conforme documentação oficial
+      },
       amount: amountInt, // Número inteiro conforme exemplo (ex: 50 para R$ 50,00)
       items: [
         {
