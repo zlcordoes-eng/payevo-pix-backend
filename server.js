@@ -77,7 +77,9 @@ app.post('/transactions', async (req, res) => {
     amountNumber = parseFloat(amountNumber.toFixed(2));
 
     // Preparar requisição para API Payevo
+    // IMPORTANTE: Basic Auth = Base64(SECRET_KEY:x)
     const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
+    console.log('🔑 Auth Token (primeiros 20 chars):', authToken.substring(0, 20) + '...');
 
     // Conforme exemplo da Payevo e integração que funciona:
     // - O amount pode ser inteiro (100) mas é melhor garantir decimais (100.00)
