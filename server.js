@@ -112,8 +112,11 @@ app.post('/transactions', async (req, res) => {
       // companyId removido - não aparece no exemplo que funciona
     };
 
-    // Log do que será enviado para Payevo
-    console.log('📤 Enviando para Payevo:', JSON.stringify(requestBody, null, 2));
+    // Log do que será enviado para Payevo (com valor detalhado)
+    console.log('📤 Enviando para Payevo:');
+    console.log('  - amount:', amountToSend, '(tipo:', typeof amountToSend, ')');
+    console.log('  - unitPrice:', amountToSend, '(tipo:', typeof amountToSend, ')');
+    console.log('  - JSON completo:', JSON.stringify(requestBody, null, 2));
 
     // Fazer requisição para API Payevo
     const response = await fetch(PAYEVO_API_URL, {
