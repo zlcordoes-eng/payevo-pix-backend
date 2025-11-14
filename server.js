@@ -194,13 +194,16 @@ app.post('/transactions', async (req, res) => {
     }
 
     // Retornar resposta formatada
+    // IMPORTANTE: A API Payevo retorna pix.qrcode (minúsculo), não pix.qrCode
+    const pixData = responseData.pix || {};
     res.json({
-      payload: responseData.payload || responseData.pixCopyPaste || responseData.pix?.copyPaste || '',
-      qrCode: responseData.qrCode || responseData.pix?.qrCode || responseData.qrCodeBase64 || '',
-      qrCodeUrl: responseData.qrCodeUrl || responseData.pix?.qrCodeUrl || '',
+      payload: responseData.payload || responseData.pixCopyPaste || pixData.copyPaste || pixData.qrcode || '',
+      qrCode: responseData.qrCode || responseData.qrCodeBase64 || pixData.qrCode || pixData.qrcode || '',
+      qrCodeUrl: responseData.qrCodeUrl || pixData.qrCodeUrl || pixData.receiptUrl || '',
       transactionId: responseData.id || responseData.transactionId || responseData.transaction?.id || '',
       amount: responseData.amount || amount,
-      status: responseData.status || 'pending'
+      status: responseData.status || 'pending',
+      expirationDate: pixData.expirationDate || null
     });
 
   } catch (error) {
