@@ -84,8 +84,8 @@ app.post('/transactions', async (req, res) => {
     // - Vamos enviar com 2 casas decimais para garantir cálculo correto de taxas
     const amountToSend = amountNumber; // Já com 2 casas decimais (30.00)
 
-    // Preparar requestBody conforme documentação oficial da Payevo
-    // Exemplo original: pix: { "expiresInDays": 1 }
+    // Preparar requestBody EXATAMENTE como na integração que funciona
+    // Estrutura: customer, paymentMethod, pix, amount, items (ordem específica)
     const requestBody = {
       customer: {
         name: customer.name,
@@ -98,18 +98,17 @@ app.post('/transactions', async (req, res) => {
       },
       paymentMethod: 'PIX',
       pix: {
-        expiresInDays: expiresInDays || 1  // Conforme documentação oficial
+        expiresInDays: expiresInDays || 1
       },
-      amount: amountToSend, // Número com 2 casas decimais (ex: 30.00 para R$ 30,00)
+      amount: Math.round(amountToSend), // Enviar como inteiro (ex: 150 ao invés de 150.00)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: amountToSend, // Número com 2 casas decimais igual ao amount
+          unitPrice: Math.round(amountToSend), // Enviar como inteiro igual ao amount
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
       ]
-      // companyId removido - não aparece no exemplo que funciona
     };
 
     // Log do que será enviado para Payevo (com valor detalhado)
