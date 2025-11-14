@@ -185,10 +185,10 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   
-  if (!PAYEVO_SECRET_KEY || !PAYEVO_COMPANY_ID) {
-    console.warn('⚠️  ATENÇÃO: Configure PAYEVO_SECRET_KEY e PAYEVO_COMPANY_ID nas variáveis de ambiente!');
+  if (!PAYEVO_SECRET_KEY) {
+    console.warn('⚠️  ATENÇÃO: Configure PAYEVO_SECRET_KEY nas variáveis de ambiente do Railway!');
   } else {
-    console.log('✅ Credenciais Payevo configuradas');
+    console.log('✅ Credencial Payevo configurada');
   }
 });
 
