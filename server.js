@@ -61,8 +61,8 @@ app.post('/transactions', async (req, res) => {
     }
 
     // Converter amount para número e validar
-    // IMPORTANTE: Garantir 2 casas decimais como na integração que funciona
-    // Se receber 30, converter para 30.00 (mantém decimais explícitos)
+    // IMPORTANTE: A Payevo espera valores em CENTAVOS, não em REAIS
+    // Se receber 30.00 (R$ 30,00), converter para 3000 centavos
     let amountNumber = parseFloat(amount);
     
     if (isNaN(amountNumber) || amountNumber <= 0) {
@@ -72,10 +72,11 @@ app.post('/transactions', async (req, res) => {
       });
     }
 
-    // IMPORTANTE: Na integração que funciona, o amount é enviado como inteiro
-    // Não precisamos converter para decimal e depois para inteiro
-    // Converter diretamente para inteiro como na integração que funciona
-    const amountInt = Math.round(amountNumber);
+    // Converter reais para centavos (multiplicar por 100)
+    // Exemplo: 30.00 (reais) -> 3000 (centavos)
+    const amountInCents = Math.round(amountNumber * 100);
+    
+    console.log(`💰 Conversão de valor: R$ ${amountNumber} -> ${amountInCents} centavos`);
 
     // Preparar requisição para API Payevo
     // IMPORTANTE: Basic Auth = Base64(SECRET_KEY:x)
@@ -98,11 +99,11 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: amountInt, // Enviar como inteiro (ex: 30)
+      amount: amountInCents, // Enviar em centavos (ex: 3000 para R$ 30,00)
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: amountInt, // Enviar como inteiro igual ao amount
+          unitPrice: amountInCents, // Enviar em centavos igual ao amount
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
@@ -124,8 +125,9 @@ app.post('/transactions', async (req, res) => {
     // Log do que será enviado para Payevo (com valor detalhado)
     console.log('📤 Enviando para Payevo:');
     console.log('  - URL:', PAYEVO_API_URL);
-    console.log('  - amount:', amountInt, '(tipo:', typeof amountInt, ')');
-    console.log('  - unitPrice:', amountInt, '(tipo:', typeof amountInt, ')');
+    console.log('  - Valor original:', amountNumber, 'reais');
+    console.log('  - amount (centavos):', amountInCents, '(tipo:', typeof amountInCents, ')');
+    console.log('  - unitPrice (centavos):', amountInCents, '(tipo:', typeof amountInCents, ')');
     console.log('  - JSON completo:', jsonString);
 
     // Fazer requisição para API Payevo
@@ -196,12 +198,22 @@ app.post('/transactions', async (req, res) => {
     // Retornar resposta formatada
     // IMPORTANTE: A API Payevo retorna pix.qrcode (minúsculo), não pix.qrCode
     const pixData = responseData.pix || {};
+    
+    // Converter amount de centavos para reais (se a Payevo retornar em centavos)
+    // Se não houver amount na resposta, usar o valor original em reais
+    let responseAmount = amountNumber;
+    if (responseData.amount) {
+      // Se o amount retornado for maior que o que enviamos em centavos, provavelmente está em centavos
+      // Dividir por 100 para converter para reais
+      responseAmount = responseData.amount / 100;
+    }
+    
     res.json({
       payload: responseData.payload || responseData.pixCopyPaste || pixData.copyPaste || pixData.qrcode || '',
       qrCode: responseData.qrCode || responseData.qrCodeBase64 || pixData.qrCode || pixData.qrcode || '',
       qrCodeUrl: responseData.qrCodeUrl || pixData.qrCodeUrl || pixData.receiptUrl || '',
       transactionId: responseData.id || responseData.transactionId || responseData.transaction?.id || '',
-      amount: responseData.amount || amount,
+      amount: responseAmount, // Valor em reais para o frontend
       status: responseData.status || 'pending',
       expirationDate: pixData.expirationDate || null
     });
