@@ -59,26 +59,28 @@ app.post('/transactions', async (req, res) => {
       });
     }
 
-    if (amount <= 0) {
-      return res.status(400).json({
-        error: 'Valor inválido',
-        message: 'O valor deve ser maior que zero'
-      });
-    }
-
-    // Preparar requisição para API Payevo
-    const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
-
-    // Converter amount para número (não string)
+    // Converter amount para número e validar
     const amountNumber = parseFloat(amount);
     
-    // Garantir que é um número válido
     if (isNaN(amountNumber) || amountNumber <= 0) {
       return res.status(400).json({
         error: 'Valor inválido',
         message: 'O valor deve ser um número maior que zero'
       });
     }
+
+    // Verificar valor mínimo (Payevo geralmente tem um valor mínimo, por exemplo 1 real)
+    // Ajuste este valor conforme necessário
+    const MINIMUM_AMOUNT = 1.0;
+    if (amountNumber < MINIMUM_AMOUNT) {
+      return res.status(400).json({
+        error: 'Valor muito baixo',
+        message: `O valor mínimo é R$ ${MINIMUM_AMOUNT.toFixed(2)}`
+      });
+    }
+
+    // Preparar requisição para API Payevo
+    const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
 
     const requestBody = {
       customer: {
@@ -122,13 +124,33 @@ app.post('/transactions', async (req, res) => {
     // Tentar parsear JSON
     let responseData;
     try {
-      responseData = JSON.parse(responseText);
+      // Limpar resposta se começar com número (algumas respostas da Payevo começam com 0 ou número)
+      let cleanedResponse = responseText.trim();
+      
+      // Se a resposta começa com número seguido de texto, extrair só o texto
+      if (/^\d+\s/.test(cleanedResponse)) {
+        cleanedResponse = cleanedResponse.replace(/^\d+\s+/, '');
+      }
+      
+      responseData = JSON.parse(cleanedResponse);
     } catch (e) {
-      // Se não for JSON, pode ser uma mensagem de erro em texto
+      // Se não for JSON, é uma mensagem de erro em texto da Payevo
+      console.error('Erro ao parsear resposta da Payevo:', responseText);
+      
+      // Tratar erro específico sobre taxas
+      if (responseText.includes('taxas') || responseText.includes('taxa')) {
+        return res.status(400).json({
+          error: 'Erro no valor',
+          message: 'O valor informado não é suficiente após as taxas. Tente um valor maior.',
+          details: responseText
+        });
+      }
+      
       return res.status(response.status || 500).json({
         error: 'Erro na API Payevo',
         message: responseText || 'Erro desconhecido',
-        status: response.status
+        status: response.status,
+        rawResponse: responseText
       });
     }
 
