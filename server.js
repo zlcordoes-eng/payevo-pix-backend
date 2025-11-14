@@ -69,6 +69,17 @@ app.post('/transactions', async (req, res) => {
     // Preparar requisição para API Payevo
     const authToken = Buffer.from(`${PAYEVO_SECRET_KEY}:x`).toString('base64');
 
+    // Converter amount para número (não string)
+    const amountNumber = parseFloat(amount);
+    
+    // Garantir que é um número válido
+    if (isNaN(amountNumber) || amountNumber <= 0) {
+      return res.status(400).json({
+        error: 'Valor inválido',
+        message: 'O valor deve ser um número maior que zero'
+      });
+    }
+
     const requestBody = {
       customer: {
         name: customer.name,
@@ -83,11 +94,11 @@ app.post('/transactions', async (req, res) => {
       pix: {
         expiresInDays: expiresInDays || 1
       },
-      amount: parseFloat(amount).toFixed(2), // Garantir 2 casas decimais
+      amount: amountNumber, // Número, não string
       items: [
         {
           title: productName || `#pedido${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-          unitPrice: parseFloat(amount).toFixed(2),
+          unitPrice: amountNumber, // Número, não string
           quantity: 1,
           externalRef: externalRef || `PED${Date.now()}`
         }
